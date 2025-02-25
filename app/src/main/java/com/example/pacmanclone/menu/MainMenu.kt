@@ -8,10 +8,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -21,80 +19,109 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.fontResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.pacmanclone.R
 import kotlinx.coroutines.delay
 
+// Define a custom font family for a retro-styled text
+val retroFontFamily = FontFamily(Font(R.font.retro_font))
+
+// Custom composable for a wooden-styled button
+@Composable
+fun WoodenButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .height(50.dp)
+            .width(160.dp)
+            .clickable(onClick = onClick), // Button click action
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.wooden_button), // Background image for button
+            contentDescription = "Button Background",
+            modifier = Modifier.matchParentSize(),
+            contentScale = ContentScale.FillBounds
+        )
+        Text(
+            text = text,
+            color = androidx.compose.ui.graphics.Color.White,
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontFamily = retroFontFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp, // Adjusted text size
+                textAlign = TextAlign.Center
+            ),
+            modifier = Modifier.padding(horizontal = 8.dp)
+        )
+    }
+}
+
 @Composable
 fun MainMenu(
-    skipAnimation: Boolean,  // If true, skip the 3-second delay for the title
-    onStartGame: () -> Unit
+    skipAnimation: Boolean, // Boolean to skip intro animation
+    onStartGame: () -> Unit // Callback when the game starts
 ) {
-    val context = LocalContext.current
+    val context = LocalContext.current // Retrieve the current context
+    val backgroundPainter = painterResource(id = R.drawable.main_background) // Background image
 
-    // Main menu background image and retro font
-    val backgroundPainter = painterResource(id = R.drawable.main_background)
-    val retroFontFamily = FontFamily(Font(R.font.retro_font))
+    var titleOffset by remember { mutableStateOf(0.dp) } // Animation offset for title
+    var showMenuBox by remember { mutableStateOf(false) } // Controls menu box visibility
+    var startTransition by remember { mutableStateOf(false) } // Controls transition animation
 
-    // Title offset states
-    var titleOffset by remember { mutableStateOf(0.dp) }
-    var showMenuBox by remember { mutableStateOf(false) }
-    var startTransition by remember { mutableStateOf(false) }
-
-    // Animate the title offset
+    // Animate title offset for smooth appearance
     val animatedTitleOffset by animateDpAsState(
         targetValue = titleOffset,
         animationSpec = tween(durationMillis = 1000), label = ""
     )
-    // Fade out entire menu on game start
+    // Animate fade out transition for the main menu
     val transitionAlpha by animateFloatAsState(
         targetValue = if (startTransition) 0f else 1f,
         animationSpec = tween(durationMillis = 1000), label = ""
     )
-    // Slide entire menu up on game start
+    // Animate offset for main menu during transition
     val transitionOffset by animateDpAsState(
         targetValue = if (startTransition) (-200).dp else 0.dp,
         animationSpec = tween(durationMillis = 1000), label = ""
     )
 
-    // Decide if we run the 3-second delay animation
+    // Delayed menu reveal effect
     LaunchedEffect(skipAnimation) {
         if (!skipAnimation) {
-            delay(3000) // Normal 3-second wait
+            delay(3000) // Wait before revealing menu
         }
-        // Slide title up and show box
-        titleOffset = 1.dp
-        showMenuBox = true
+        titleOffset = 1.dp // Move title slightly
+        showMenuBox = true // Show menu options
     }
 
-    // Transition to the game after fade/slide
+    // Delayed transition when starting game
     LaunchedEffect(startTransition) {
         if (startTransition) {
-            delay(1000)
+            delay(1000) // Allow transition animation
             onStartGame()
         }
     }
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Background
+            // Background image
             Image(
                 painter = backgroundPainter,
                 contentDescription = "Background",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-            // Semi-transparent overlay
+            // Dark overlay for better contrast
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.4f))
             )
-            // Main menu content with fade/slide transition
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -104,7 +131,7 @@ fun MainMenu(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Title "SEEKER"
+                // Game title
                 Text(
                     text = "SEEKER",
                     style = MaterialTheme.typography.displayMedium.copy(
@@ -114,70 +141,63 @@ fun MainMenu(
                     modifier = Modifier.offset(y = animatedTitleOffset)
                 )
                 Spacer(modifier = Modifier.height(24.dp))
-                // Dungeon-tile–themed box with buttons
+
+                // Animated visibility for menu box
                 AnimatedVisibility(
                     visible = showMenuBox,
                     enter = fadeIn(animationSpec = tween(durationMillis = 1000))
                 ) {
                     Box(
                         modifier = Modifier
-                            .width(320.dp),
+                            .width(500.dp)
+                            .height(400.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        // Dungeon tile background
+                        // Wooden-themed menu background
                         Image(
-                            painter = painterResource(id = R.drawable.dungeon_tile),
-                            contentDescription = "Dungeon Tile Background",
+                            painter = painterResource(id = R.drawable.wooden_background),
+                            contentDescription = "Wooden Background",
                             modifier = Modifier.matchParentSize(),
                             contentScale = ContentScale.FillBounds
                         )
-                        // Optional dim overlay
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.2f))
-                        )
-                        // Buttons column
+
                         Column(
                             modifier = Modifier
-                                .padding(16.dp)
-                                .width(200.dp)
-                                .verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                                .padding(24.dp)
+                                .fillMaxSize(),
+                            verticalArrangement = Arrangement.Top,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Button(
-                                modifier = Modifier.fillMaxWidth(),
-                                onClick = { startTransition = true }
+                            Spacer(modifier = Modifier.height(50.dp))
+
+                            // First row: Solo & Multiplayer buttons
+                            Row(
+                                modifier = Modifier.fillMaxWidth(0.8f),
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(text = "Solo Player")
+                                WoodenButton(text = "Solo Player", onClick = { startTransition = true })
+                                Spacer(modifier = Modifier.width(16.dp))
+                                WoodenButton(text = "Multiplayer", onClick = { /* Multiplayer logic */ })
                             }
-                            Button(
-                                modifier = Modifier.fillMaxWidth(),
-                                onClick = { /* Multiplayer */ }
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Second row: Leaderboard & Options buttons
+                            Row(
+                                modifier = Modifier.fillMaxWidth(0.8f),
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(text = "Multiplayer")
+                                WoodenButton(text = "Leaderboard", onClick = { /* Leaderboard logic */ })
+                                Spacer(modifier = Modifier.width(16.dp))
+                                WoodenButton(text = "Option", onClick = { /* Options logic */ })
                             }
-                            Button(
-                                modifier = Modifier.fillMaxWidth(),
-                                onClick = { /* Leaderboard */ }
-                            ) {
-                                Text(text = "Leaderboard")
-                            }
-                            Button(
-                                modifier = Modifier.fillMaxWidth(),
-                                onClick = { /* Options */ }
-                            ) {
-                                Text(text = "Options")
-                            }
-                            Button(
-                                modifier = Modifier.fillMaxWidth(),
-                                onClick = {
-                                    (context as? Activity)?.finishAffinity()
-                                }
-                            ) {
-                                Text(text = "Exit")
-                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Exit button
+                            WoodenButton(
+                                text = "Exit",
+                                onClick = { (context as? Activity)?.finishAffinity() }, // Close app
+                                modifier = Modifier.fillMaxWidth(0.6f)
+                            )
                         }
                     }
                 }
