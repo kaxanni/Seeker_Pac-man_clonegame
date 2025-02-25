@@ -4,6 +4,7 @@ package com.example.pacmanclone.game
 const val EMPTY = 0
 const val WALL = 1
 const val PELLET = 2
+const val POWER_UP = 3  // (Not used in this mechanic)
 
 // Available directions.
 enum class Direction {
@@ -18,16 +19,16 @@ enum class GameStatus {
 /**
  * Creates the original Pac‑Man maze as a 2D grid.
  *
- * The maze is defined using a list of strings.
- * Each character represents a tile:
- * - '#' → wall
- * - '.' → pellet
- * - ' ' → empty space (used for the ghost house and corridors)
+ * Each line MUST have exactly 28 columns.
+ * '#' → wall
+ * '.' → pellet
+ * ' ' → empty space
+ * 'P' → power‑up (not used in our new mechanic)
  */
 fun createOriginalMaze(): List<MutableList<Int>> {
     val layout = listOf(
         "############################",
-        "#............##............#",
+        "#...........##.............#",
         "#.####.#####.##.#####.####.#",
         "#.####.#####.##.#####.####.#",
         "#.####.#####.##.#####.####.#",
@@ -52,13 +53,17 @@ fun createOriginalMaze(): List<MutableList<Int>> {
         "############################"
     )
     val rows = layout.size
-    val cols = layout[0].length
+    val cols = layout[0].length  // All lines should be 28 characters.
     val maze = MutableList(rows) { MutableList(cols) { EMPTY } }
     for (i in 0 until rows) {
+        require(layout[i].length == cols) {
+            "Line $i has length ${layout[i].length}, expected $cols."
+        }
         for (j in 0 until cols) {
             maze[i][j] = when (layout[i][j]) {
                 '#' -> WALL
                 '.' -> PELLET
+                'P' -> POWER_UP
                 ' ' -> EMPTY
                 else -> EMPTY
             }
