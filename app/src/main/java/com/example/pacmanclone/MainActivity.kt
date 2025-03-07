@@ -3,66 +3,107 @@ package com.example.pacmanclone
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import com.example.pacmanclone.menu.MainMenu
+import com.example.pacmanclone.auth.AccountScreen
 import com.example.pacmanclone.game.GameLaunchAnimation
 import com.example.pacmanclone.game.PacmanGame
+import com.example.pacmanclone.menu.MainMenu
+import com.example.pacmanclone.menu.OptionsScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    // Navigation states:
-                    // showMenu -> main menu
-                    // showLaunch -> optional game launch animation
-                    // showGame -> actual game screen
-                    var showMenu by remember { mutableStateOf(true) }
-                    var showLaunch by remember { mutableStateOf(false) }
-                    var showGame by remember { mutableStateOf(false) }
+            MyApp()
+        }
+    }
+}
 
-                    // Flag to skip main menu animations after returning from the game
-                    var skipMenuAnimation by remember { mutableStateOf(false) }
+@Composable
+fun MyApp() {
+    // State booleans controlling which screen is shown
+    var showMainMenu by remember { mutableStateOf(true) }
+    var showOptions by remember { mutableStateOf(false) }
+    var showAccount by remember { mutableStateOf(false) }
 
-                    when {
-                        showMenu -> {
-                            MainMenu(
-                                skipAnimation = skipMenuAnimation,
-                                onStartGame = {
-                                    // Hide menu, show optional launch animation
-                                    showMenu = false
-                                    showLaunch = true
-                                    // Next time user returns to menu, skip animations
-                                    skipMenuAnimation = true
-                                }
-                            )
-                        }
-                        showLaunch -> {
-                            // Optional short animation before game
-                            GameLaunchAnimation(onAnimationComplete = {
-                                showLaunch = false
-                                showGame = true
-                            })
-                        }
-                        showGame -> {
-                            PacmanGame(onBack = {
-                                // Returning to the main menu from the game
-                                showGame = false
-                                showMenu = true
-                                // We remain with skipMenuAnimation = true
-                            })
-                        }
-                    }
+    var showLaunch by remember { mutableStateOf(false) } // The second screen (Knights door, etc.)
+    var showGame by remember { mutableStateOf(false) }   // The actual PacmanGame
+
+    when {
+        // 1) Show the actual Pac-Man game if showGame is true
+        showGame -> {
+            PacmanGame(
+                onBack = {
+                    // If user presses "Back" in PacmanGame, go to main menu
+                    showGame = false
+                    showMainMenu = true
                 }
-            }
+            )
+        }
+        // 2) Show the second screen (GameLaunchAnimation) if showLaunch is true
+        showLaunch -> {
+            GameLaunchAnimation(
+                onAnimationComplete = {
+                    // Once animation is done, proceed to the PacmanGame
+                    showLaunch = false
+                    showGame = true
+                }
+            )
+        }
+        // 3) Show the AccountScreen if showAccount is true
+        showAccount -> {
+            AccountScreen(
+                onBack = {
+                    // Return to Options after back
+                    showAccount = false
+                    showOptions = true
+                },
+                onLoggedIn = {
+                    // Once logged in, go back to main menu
+                    showAccount = false
+                    showMainMenu = true
+                }
+            )
+        }
+        // 4) Show the OptionsScreen if showOptions is true
+        showOptions -> {
+            // Make sure your OptionsScreen has these four parameters
+            OptionsScreen(
+                onAccountsClicked = {
+                    // Navigate to AccountScreen
+                    showOptions = false
+                    showAccount = true
+                },
+                onSoundsClicked = {
+                    // TODO: handle sound settings
+                },
+                onHowToPlayClicked = {
+                    // TODO: show how to play instructions
+                },
+                onBack = {
+                    // Return to main menu
+                    showOptions = false
+                    showMainMenu = true
+                }
+            )
+        }
+        // 5) Otherwise, show the main menu
+        showMainMenu -> {
+            MainMenu(
+                skipAnimation = false,
+                onStartGame = {
+                    // Tapping "Solo Player" triggers this:
+                    // 1) Hide main menu
+                    // 2) Show GameLaunchAnimation
+                    showMainMenu = false
+                    showLaunch = true
+                },
+                onOptionClicked = {
+                    // Show the Options screen
+                    showMainMenu = false
+                    showOptions = true
+                }
+            )
         }
     }
 }
