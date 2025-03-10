@@ -78,18 +78,19 @@ fun UsernameOverlay() {
     val currentUser = auth.currentUser
     val db = FirebaseFirestore.getInstance()
 
-    // Whether we've loaded from Firestore
+    // Only show overlay if the user is logged in.
+    if (currentUser == null) return
+
+    // State to know if Firestore has loaded the username.
     var userDocLoaded by remember { mutableStateOf(false) }
-    // The stored username ("" if none)
+    // Stored username from Firestore (empty string if none)
     var username by remember { mutableStateOf("") }
+    // Local state to track if we're editing (i.e. show input UI) or just displaying the username.
+    var isEditing by remember { mutableStateOf(false) }
+    // Local state for the text field (pre-filled with current username if editing)
+    var newUsername by remember { mutableStateOf(TextFieldValue("")) }
 
-    // 1) If not logged in, skip everything
-    if (currentUser == null) {
-        // No user => no overlay needed
-        return
-    }
-
-    // 2) Otherwise, load the user's document from Firestore once
+    // Load the username from Firestore once
     LaunchedEffect(currentUser.uid) {
         db.collection("users").document(currentUser.uid).get()
             .addOnSuccessListener { snapshot ->
@@ -97,6 +98,8 @@ fun UsernameOverlay() {
                 if (snapshot.exists()) {
                     val fetched = snapshot.getString("username") ?: ""
                     username = fetched
+                    // Pre-fill the text field with the current username when loaded.
+                    newUsername = TextFieldValue(fetched)
                 }
             }
             .addOnFailureListener {
@@ -105,26 +108,25 @@ fun UsernameOverlay() {
             }
     }
 
-    // If not loaded yet, do nothing (or show a spinner)
+    // If not loaded yet, show nothing (or a loading indicator)
     if (!userDocLoaded) return
 
-    // 3) If username is empty => show dark overlay + input
-    if (username.isEmpty()) {
+    // If no username is set or if we are in editing mode, show the input UI.
+    if (username.isEmpty() || isEditing) {
+        // Darken the background so user is forced to enter/update their username.
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.6f)) // darken background
+                .background(Color.Black.copy(alpha = 0.6f))
                 .zIndex(10f),
             contentAlignment = Alignment.Center
         ) {
-            var newUsername by remember { mutableStateOf(TextFieldValue("")) }
-
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // The nametag box with BasicTextField
+                // The nametag box with input field
                 Box(
                     modifier = Modifier
-                        .width(200.dp)
-                        .height(50.dp),
+                        .width(300.dp)
+                        .height(70.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
@@ -133,6 +135,7 @@ fun UsernameOverlay() {
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.FillBounds
                     )
+                    // Use BasicTextField to avoid default borders
                     BasicTextField(
                         value = newUsername,
                         onValueChange = { newUsername = it },
@@ -168,12 +171,13 @@ fun UsernameOverlay() {
                 }
                 Spacer(Modifier.height(8.dp))
                 Button(onClick = {
-                    if (currentUser != null && newUsername.text.isNotBlank()) {
+                    if (newUsername.text.isNotBlank()) {
+                        // Save the new username to Firestore.
                         db.collection("users").document(currentUser.uid)
                             .set(mapOf("username" to newUsername.text))
                             .addOnSuccessListener {
-                                // Once saved => no more overlay
                                 username = newUsername.text
+                                isEditing = false // Exit edit mode.
                             }
                     }
                 }) {
@@ -182,7 +186,8 @@ fun UsernameOverlay() {
             }
         }
     } else {
-        // 4) If username is non-empty => "Hello, <username>" pinned top-left
+        // If username exists and not in editing mode, show "Hello, <username>" at the top-left.
+        // Make it clickable to allow editing.
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -190,12 +195,20 @@ fun UsernameOverlay() {
             contentAlignment = Alignment.TopStart
         ) {
             Text(
-                text = "Hello, $username",
-                fontFamily = retroFontFamily,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                color = Color.White,
-                modifier = Modifier.padding(16.dp)
+                text = "Hi, $username",
+                style = TextStyle(
+                    fontFamily = retroFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color.White
+                ),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .clickable {
+                        // Switch to edit mode when the username is tapped.
+                        newUsername = TextFieldValue(username)
+                        isEditing = true
+                    }
             )
         }
     }
