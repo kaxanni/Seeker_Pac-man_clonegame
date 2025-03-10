@@ -78,63 +78,61 @@ fun UsernameOverlay() {
     val currentUser = auth.currentUser
     val db = FirebaseFirestore.getInstance()
 
-    // Whether we've loaded the user's document from Firestore
+    // Whether we've loaded from Firestore
     var userDocLoaded by remember { mutableStateOf(false) }
-    // The stored username (empty if none)
+    // The stored username ("" if none)
     var username by remember { mutableStateOf("") }
 
-    // Load username from Firestore once
-    LaunchedEffect(currentUser?.uid) {
-        if (currentUser != null) {
-            db.collection("users").document(currentUser.uid).get()
-                .addOnSuccessListener { snapshot ->
-                    userDocLoaded = true
-                    if (snapshot.exists()) {
-                        val fetched = snapshot.getString("username") ?: ""
-                        username = fetched
-                    }
-                }
-                .addOnFailureListener {
-                    userDocLoaded = true
-                    username = ""
-                }
-        } else {
-            userDocLoaded = true
-            username = ""
-        }
+    // 1) If not logged in, skip everything
+    if (currentUser == null) {
+        // No user => no overlay needed
+        return
     }
 
-    // If not loaded, show nothing (or a loading spinner if you want)
+    // 2) Otherwise, load the user's document from Firestore once
+    LaunchedEffect(currentUser.uid) {
+        db.collection("users").document(currentUser.uid).get()
+            .addOnSuccessListener { snapshot ->
+                userDocLoaded = true
+                if (snapshot.exists()) {
+                    val fetched = snapshot.getString("username") ?: ""
+                    username = fetched
+                }
+            }
+            .addOnFailureListener {
+                userDocLoaded = true
+                username = ""
+            }
+    }
+
+    // If not loaded yet, do nothing (or show a spinner)
     if (!userDocLoaded) return
 
+    // 3) If username is empty => show dark overlay + input
     if (username.isEmpty()) {
-        // The user has no username => dark overlay + center input
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.6f)) // darken the screen
+                .background(Color.Black.copy(alpha = 0.6f)) // darken background
                 .zIndex(10f),
             contentAlignment = Alignment.Center
         ) {
             var newUsername by remember { mutableStateOf(TextFieldValue("")) }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // The nametag box + BasicTextField
+                // The nametag box with BasicTextField
                 Box(
                     modifier = Modifier
-                        .width(300.dp)
+                        .width(200.dp)
                         .height(50.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    // The background image
                     Image(
                         painter = painterResource(id = R.drawable.nametag_box),
                         contentDescription = "Nametag Background",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.FillBounds
                     )
-
-                    // A BasicTextField with a decorationBox to center placeholder & text
                     BasicTextField(
                         value = newUsername,
                         onValueChange = { newUsername = it },
@@ -148,14 +146,12 @@ fun UsernameOverlay() {
                         ),
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(horizontal = 12.dp), // some padding inside the box
+                            .padding(horizontal = 12.dp),
                         decorationBox = { innerTextField ->
-                            // Another box to center the placeholder / typed text
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                // If empty, show placeholder
                                 if (newUsername.text.isEmpty()) {
                                     Text(
                                         text = "Enter Username",
@@ -165,20 +161,18 @@ fun UsernameOverlay() {
                                         textAlign = TextAlign.Center
                                     )
                                 }
-                                // Draw the actual typed text
                                 innerTextField()
                             }
                         }
                     )
                 }
                 Spacer(Modifier.height(8.dp))
-                // "Save" button
                 Button(onClick = {
                     if (currentUser != null && newUsername.text.isNotBlank()) {
                         db.collection("users").document(currentUser.uid)
                             .set(mapOf("username" to newUsername.text))
                             .addOnSuccessListener {
-                                // Once saved, set local username => hide input
+                                // Once saved => no more overlay
                                 username = newUsername.text
                             }
                     }
@@ -188,7 +182,7 @@ fun UsernameOverlay() {
             }
         }
     } else {
-        // The user already has a username => show "Hello, <username>" in top-left
+        // 4) If username is non-empty => "Hello, <username>" pinned top-left
         Box(
             modifier = Modifier
                 .fillMaxSize()
