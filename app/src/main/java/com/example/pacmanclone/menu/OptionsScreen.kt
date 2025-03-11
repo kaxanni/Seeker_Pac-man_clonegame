@@ -228,6 +228,19 @@ fun OptionsScreen(
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.1f))
     ) {
+        // Background image for the options screen
+        Image(
+            painter = painterResource(id = R.drawable.options_background),
+            contentDescription = "Background Image",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.FillBounds
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.1f))
+        )
         // Stone-themed box
         Box(
             modifier = Modifier

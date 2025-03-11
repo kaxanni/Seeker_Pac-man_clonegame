@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "347035440580",
+    "project_id": "seeker-db",
+    "storage_bucket": "seeker-db.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:347035440580:android:6cd23402f58ddc2f3a0091",
+        "android_client_info": {
+          "package_name": "com.example.pacmanclone"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "347035440580-oj1uldv1u8c53qq26eoivhoei7n6pqv9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.pacmanclone",
+            "certificate_hash": "add6f33e999375a30c73079b07f5d16df5cae11b"
+          }
+        },
+        {
+          "client_id": "347035440580-jq8jtla52ednb6t144dp3pcn4auo8e0i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAIzQDPGjGV4wf0Eow8HSzIbf3qFthox8k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "347035440580-jq8jtla52ednb6t144dp3pcn4auo8e0i.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
