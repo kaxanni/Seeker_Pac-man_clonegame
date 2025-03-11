@@ -2,8 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.gms.google-services")
 }
-
 android {
     namespace = "com.example.pacmanclone"
     compileSdk = 35
@@ -49,6 +49,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.com.google.firebase.firebase.auth.ktx2)
+    implementation(libs.google.firebase.firestore.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -56,4 +58,15 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation (libs.firebase.auth.ktx)
+    implementation (libs.play.services.auth)
+    implementation (libs.androidx.navigation.compose)
+    implementation (libs.ui)
+    implementation (libs.google.firebase.auth.ktx)
+    implementation (libs.com.google.firebase.firebase.auth.ktx)
+    implementation (libs.firebase.firestore.ktx)
+
 }
+

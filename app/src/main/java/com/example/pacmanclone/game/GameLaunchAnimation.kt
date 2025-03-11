@@ -29,7 +29,7 @@ fun GameLaunchAnimation(onAnimationComplete: () -> Unit) {
         ) + fadeIn(animationSpec = tween(durationMillis = 1000))
     ) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Launching Game...", color = Color.White)
+            Text("Launching Game...", color = Color.Red)
         }
     }
 }

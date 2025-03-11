@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.fontResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -38,12 +39,12 @@ fun WoodenButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifie
     Box(
         modifier = modifier
             .height(50.dp)
-            .width(160.dp)
+            .width(180.dp)
             .clickable(onClick = onClick), // Button click action
         contentAlignment = Alignment.Center
     ) {
         Image(
-            painter = painterResource(id = R.drawable.wooden_button), // Background image for button
+            painter = painterResource(id = R.drawable.stone_button), // Background image for button
             contentDescription = "Button Background",
             modifier = Modifier.matchParentSize(),
             contentScale = ContentScale.FillBounds
@@ -54,7 +55,7 @@ fun WoodenButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifie
             style = MaterialTheme.typography.bodyLarge.copy(
                 fontFamily = retroFontFamily,
                 fontWeight = FontWeight.Bold,
-                fontSize = 12.sp, // Adjusted text size
+                fontSize = 10.sp, // Adjusted text size
                 textAlign = TextAlign.Center
             ),
             modifier = Modifier.padding(horizontal = 8.dp)
@@ -62,10 +63,15 @@ fun WoodenButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifie
     }
 }
 
+/**
+ * MainMenu now has an extra parameter [onOptionClicked]
+ * so the "Option" button can do something (e.g., show an Options screen).
+ */
 @Composable
 fun MainMenu(
     skipAnimation: Boolean, // Boolean to skip intro animation
-    onStartGame: () -> Unit // Callback when the game starts
+    onStartGame: () -> Unit, // Callback when the game starts
+    onOptionClicked: () -> Unit // NEW: callback for "Option" button
 ) {
     val context = LocalContext.current // Retrieve the current context
     val backgroundPainter = painterResource(id = R.drawable.main_background) // Background image
@@ -77,17 +83,20 @@ fun MainMenu(
     // Animate title offset for smooth appearance
     val animatedTitleOffset by animateDpAsState(
         targetValue = titleOffset,
-        animationSpec = tween(durationMillis = 1000), label = ""
+        animationSpec = tween(durationMillis = 1000),
+        label = ""
     )
     // Animate fade out transition for the main menu
     val transitionAlpha by animateFloatAsState(
         targetValue = if (startTransition) 0f else 1f,
-        animationSpec = tween(durationMillis = 1000), label = ""
+        animationSpec = tween(durationMillis = 1000),
+        label = ""
     )
     // Animate offset for main menu during transition
     val transitionOffset by animateDpAsState(
         targetValue = if (startTransition) (-200).dp else 0.dp,
-        animationSpec = tween(durationMillis = 1000), label = ""
+        animationSpec = tween(durationMillis = 1000),
+        label = ""
     )
 
     // Delayed menu reveal effect
@@ -155,7 +164,7 @@ fun MainMenu(
                     ) {
                         // Wooden-themed menu background
                         Image(
-                            painter = painterResource(id = R.drawable.wooden_background),
+                            painter = painterResource(id = R.drawable.stone_background),
                             contentDescription = "Wooden Background",
                             modifier = Modifier.matchParentSize(),
                             contentScale = ContentScale.FillBounds
@@ -163,7 +172,7 @@ fun MainMenu(
 
                         Column(
                             modifier = Modifier
-                                .padding(24.dp)
+                                .padding(12.dp)
                                 .fillMaxSize(),
                             verticalArrangement = Arrangement.Top,
                             horizontalAlignment = Alignment.CenterHorizontally
@@ -179,7 +188,7 @@ fun MainMenu(
                                 Spacer(modifier = Modifier.width(16.dp))
                                 WoodenButton(text = "Multiplayer", onClick = { /* Multiplayer logic */ })
                             }
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
 
                             // Second row: Leaderboard & Options buttons
                             Row(
@@ -188,15 +197,18 @@ fun MainMenu(
                             ) {
                                 WoodenButton(text = "Leaderboard", onClick = { /* Leaderboard logic */ })
                                 Spacer(modifier = Modifier.width(16.dp))
-                                WoodenButton(text = "Option", onClick = { /* Options logic */ })
+                                WoodenButton(text = "Option", onClick = {
+                                    // HERE is your new logic: calls onOptionClicked
+                                    onOptionClicked()
+                                })
                             }
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
 
                             // Exit button
                             WoodenButton(
                                 text = "Exit",
                                 onClick = { (context as? Activity)?.finishAffinity() }, // Close app
-                                modifier = Modifier.fillMaxWidth(0.6f)
+                                modifier = Modifier.fillMaxWidth(0.4f)
                             )
                         }
                     }
