@@ -9,6 +9,7 @@ import com.example.pacmanclone.game.GameLaunchAnimation
 import com.example.pacmanclone.game.PacmanGame
 import com.example.pacmanclone.menu.MainMenu
 import com.example.pacmanclone.menu.OptionsScreen
+import com.example.pacmanclone.menu.HowToPlayScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,6 +26,7 @@ fun MyApp() {
     var showMainMenu by remember { mutableStateOf(true) }
     var showOptions by remember { mutableStateOf(false) }
     var showAccount by remember { mutableStateOf(false) }
+    var showHowToPlay by remember { mutableStateOf(false) }
 
     var showLaunch by remember { mutableStateOf(false) } // The second screen (Knights door, etc.)
     var showGame by remember { mutableStateOf(false) }   // The actual PacmanGame
@@ -65,7 +67,15 @@ fun MyApp() {
                 }
             )
         }
-        // 4) Show the OptionsScreen if showOptions is true
+        // 4) Show the HowToPlayScreen if showHowToPlay is true
+        showHowToPlay -> {
+            HowToPlayScreen(onBack = {
+                showHowToPlay = false
+                showOptions = true // Or navigate back to the appropriate screen
+            })
+        }
+
+        // 5) Show the OptionsScreen if showOptions is true
         showOptions -> {
             // Make sure your OptionsScreen has these four parameters
             OptionsScreen(
@@ -78,7 +88,9 @@ fun MyApp() {
                     // TODO: handle sound settings
                 },
                 onHowToPlayClicked = {
-                    // TODO: show how to play instructions
+                    // Navigate to HowToPlayScreen
+                    showOptions = false
+                    showHowToPlay = true
                 },
                 onBack = {
                     // Return to main menu
@@ -87,7 +99,7 @@ fun MyApp() {
                 }
             )
         }
-        // 5) Otherwise, show the main menu
+        // 6) Otherwise, show the main menu
         showMainMenu -> {
             MainMenu(
                 skipAnimation = false,
