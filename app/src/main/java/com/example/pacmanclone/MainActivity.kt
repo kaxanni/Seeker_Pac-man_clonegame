@@ -10,7 +10,6 @@ import com.example.pacmanclone.game.PacmanGame
 import com.example.pacmanclone.menu.MainMenu
 import com.example.pacmanclone.menu.OptionsScreen
 import com.example.pacmanclone.menu.HowToPlayScreen
-import com.example.pacmanclone.menu.retroFontFamily
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,17 +69,8 @@ fun MyApp() {
         }
         // 4) Show the HowToPlayScreen if showHowToPlay is true
         showHowToPlay -> {
-            HowToPlayScreen(
-                onBack = {
-                    showHowToPlay = false
-                    showOptions = true // Or navigate back to the appropriate screen
-                },
-                retroFontFamily = retroFontFamily // Ensure this variable is defined
-            )
+            HowToPlayScreen()
         }
-
-
-
         // 5) Show the OptionsScreen if showOptions is true
         showOptions -> {
             // Make sure your OptionsScreen has these four parameters
