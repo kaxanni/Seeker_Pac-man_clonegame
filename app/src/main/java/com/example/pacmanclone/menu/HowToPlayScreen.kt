@@ -12,13 +12,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pacmanclone.R
 
 @Composable
-fun HowToPlayScreen(onBack: () -> Unit) {
+fun HowToPlayScreen(onBack: () -> Unit, retroFontFamily: FontFamily) {
     val scrollState = rememberScrollState()
     val background: Painter = painterResource(id = R.drawable.howtoplay)
     val backButton: Painter = painterResource(id = R.drawable.back_button)
@@ -47,7 +48,7 @@ fun HowToPlayScreen(onBack: () -> Unit) {
                 )
             }
 
-            Text("How to Play", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+            Text("How to Play", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Black, fontFamily = retroFontFamily)
             Spacer(modifier = Modifier.height(16.dp))
 
             Text("Game Modes:", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Black)
