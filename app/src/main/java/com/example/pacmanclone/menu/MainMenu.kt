@@ -1,6 +1,7 @@
 package com.example.pacmanclone.menu
 
 import android.app.Activity
+import android.media.MediaPlayer
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.core.animateDpAsState
@@ -19,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.fontResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -28,10 +28,49 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pacmanclone.R
+import com.example.pacmanclone.util.MusicController
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.delay
 
 // Define a custom font family for a retro-styled text
 val retroFontFamily = FontFamily(Font(R.font.retro_font))
+
+@Composable
+fun MainMenuUsernameDisplay() {
+    val auth = FirebaseAuth.getInstance()
+    val currentUser = auth.currentUser
+    val db = FirebaseFirestore.getInstance()
+
+    var username by remember { mutableStateOf("") }
+    var loaded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(currentUser?.uid) {
+        if (currentUser != null) {
+            db.collection("users").document(currentUser.uid).get()
+                .addOnSuccessListener { snapshot ->
+                    loaded = true
+                    if (snapshot.exists()) {
+                        username = snapshot.getString("username") ?: ""
+                    }
+                }
+                .addOnFailureListener {
+                    loaded = true
+                }
+        } else {
+            loaded = true
+        }
+    }
+
+    if (loaded && username.isNotEmpty()) {
+        Text(
+            text = "Hello, $username",
+            fontFamily = retroFontFamily,
+            fontSize = 16.sp,
+            color = androidx.compose.ui.graphics.Color.White
+        )
+    }
+}
 
 // Custom composable for a wooden-styled button
 @Composable
@@ -71,10 +110,32 @@ fun WoodenButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifie
 fun MainMenu(
     skipAnimation: Boolean, // Boolean to skip intro animation
     onStartGame: () -> Unit, // Callback when the game starts
-    onOptionClicked: () -> Unit // NEW: callback for "Option" button
+    onOptionClicked: () -> Unit, // NEW: callback for "Option" button
+    onLeaderboardClicked: () -> Unit,  // NEW callnack on leaderboard
+    onMultiplayerClicked: () -> Unit // callback on multiplayer
 ) {
     val context = LocalContext.current // Retrieve the current context
     val backgroundPainter = painterResource(id = R.drawable.main_background) // Background image
+
+    // Start the background music when MainMenu appears.
+    val mediaPlayer = remember { MediaPlayer.create(context, R.raw.mainback_music) }
+    DisposableEffect(Unit) {
+        mediaPlayer.isLooping = true
+        mediaPlayer.start()
+        onDispose {
+            mediaPlayer.stop()
+            mediaPlayer.release()
+        }
+    }
+    LaunchedEffect(MusicController.volume, MusicController.isMuted) {
+        if (MusicController.isMuted) {
+            mediaPlayer.setVolume(0f, 0f)
+        } else {
+            mediaPlayer.setVolume(MusicController.volume, MusicController.volume)
+        }
+    }
+
+
 
     var titleOffset by remember { mutableStateOf(0.dp) } // Animation offset for title
     var showMenuBox by remember { mutableStateOf(false) } // Controls menu box visibility
@@ -140,6 +201,9 @@ fun MainMenu(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Show the user’s name if available
+                MainMenuUsernameDisplay()
+
                 // Game title
                 Text(
                     text = "SEEKER",
@@ -186,7 +250,7 @@ fun MainMenu(
                             ) {
                                 WoodenButton(text = "Solo Player", onClick = { startTransition = true })
                                 Spacer(modifier = Modifier.width(16.dp))
-                                WoodenButton(text = "Multiplayer", onClick = { /* Multiplayer logic */ })
+                                WoodenButton(text = "Multiplayer", onClick = { onMultiplayerClicked() })
                             }
                             Spacer(modifier = Modifier.height(6.dp))
 
@@ -195,12 +259,9 @@ fun MainMenu(
                                 modifier = Modifier.fillMaxWidth(0.8f),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                WoodenButton(text = "Leaderboard", onClick = { /* Leaderboard logic */ })
+                                WoodenButton(text = "Leaderboard", onClick = { onLeaderboardClicked() })
                                 Spacer(modifier = Modifier.width(16.dp))
-                                WoodenButton(text = "Option", onClick = {
-                                    // HERE is your new logic: calls onOptionClicked
-                                    onOptionClicked()
-                                })
+                                WoodenButton(text = "Option", onClick = { onOptionClicked() })
                             }
                             Spacer(modifier = Modifier.height(8.dp))
 

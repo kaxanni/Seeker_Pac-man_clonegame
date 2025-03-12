@@ -4,9 +4,15 @@ package com.example.pacmanclone.auth
 
 import android.app.Activity
 import android.content.Intent
+import android.media.MediaPlayer
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -14,10 +20,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.pacmanclone.R
+import com.example.pacmanclone.util.MusicController
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -41,6 +50,26 @@ fun AccountScreen(
     // Retrieve the Web Client ID from strings.xml
     val webClientId = stringResource(R.string.default_web_client_id)
 
+
+    // Create the MediaPlayer and start music
+    val mediaPlayer = remember {
+        MediaPlayer.create(context, R.raw.option_music) // replace with your mp3 name
+    }
+    DisposableEffect(Unit) {
+        mediaPlayer.isLooping = true
+        mediaPlayer.start()
+        onDispose {
+            mediaPlayer.stop()
+            mediaPlayer.release()
+        }
+    }
+    LaunchedEffect(MusicController.volume, MusicController.isMuted) {
+        if (MusicController.isMuted) {
+            mediaPlayer.setVolume(0f, 0f)
+        } else {
+            mediaPlayer.setVolume(MusicController.volume, MusicController.volume)
+        }
+    }
     // Configure Google Sign-In Options using the webClientId
     val gso = remember(webClientId) {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -82,79 +111,111 @@ fun AccountScreen(
             errorMsg = "Google sign-in canceled"
         }
     }
+    // Outer box for the entire screen background
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Background image (option_background)
+        Image(
+            painter = painterResource(id = R.drawable.option_background),
+            contentDescription = "Option Background",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(text = if (isSignUp) "Sign Up" else "Login")
-        Spacer(Modifier.height(16.dp))
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") }
-        )
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") }
-        )
-        Spacer(Modifier.height(8.dp))
-        errorMsg?.let {
-            Text(it, color = Color.Red)
-            Spacer(Modifier.height(8.dp))
-        }
-        Row {
-            Button(onClick = { isSignUp = !isSignUp }) {
-                Text(if (isSignUp) "Switch to Login" else "Switch to Sign Up")
-            }
-            Spacer(Modifier.width(16.dp))
-            Button(onClick = {
-                if (email.isBlank() || password.isBlank()) {
-                    errorMsg = "Email/Password cannot be empty"
-                    return@Button
+        // White box with semi-transparency & rounded corners, centered & sized to content
+        Box(
+            modifier = Modifier
+                .wrapContentSize()
+                .align(Alignment.Center)
+                .padding(16.dp)
+                .background(
+                    color = Color.White.copy(alpha = 0.8f),
+                    shape = RoundedCornerShape(16.dp)
+                )
+        ) {
+            // Scroll state for vertical overflow
+            val scrollState = rememberScrollState()
+
+            // The login form
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .verticalScroll(scrollState),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = if (isSignUp) "Sign Up" else "Login", color = Color.Black)
+                Spacer(Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") }
+                )
+                Spacer(Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") }
+                )
+                Spacer(Modifier.height(8.dp))
+
+                errorMsg?.let {
+                    Text(it, color = Color.Red)
+                    Spacer(Modifier.height(8.dp))
                 }
-                if (isSignUp) {
-                    auth.createUserWithEmailAndPassword(email, password)
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                onLoggedIn()
-                            } else {
-                                errorMsg = task.exception?.localizedMessage ?: "Sign Up failed"
-                            }
+
+                Row {
+                    Button(onClick = { isSignUp = !isSignUp }) {
+                        Text(if (isSignUp) "Switch to Login" else "Switch to Sign Up")
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    Button(onClick = {
+                        if (email.isBlank() || password.isBlank()) {
+                            errorMsg = "Email/Password cannot be empty"
+                            return@Button
                         }
-                } else {
-                    auth.signInWithEmailAndPassword(email, password)
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                onLoggedIn()
-                            } else {
-                                errorMsg = task.exception?.localizedMessage ?: "Login failed"
-                            }
+                        if (isSignUp) {
+                            auth.createUserWithEmailAndPassword(email, password)
+                                .addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        onLoggedIn()
+                                    } else {
+                                        errorMsg = task.exception?.localizedMessage
+                                            ?: "Sign Up failed"
+                                    }
+                                }
+                        } else {
+                            auth.signInWithEmailAndPassword(email, password)
+                                .addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        onLoggedIn()
+                                    } else {
+                                        errorMsg = task.exception?.localizedMessage
+                                            ?: "Login failed"
+                                    }
+                                }
                         }
+                    }) {
+                        Text(if (isSignUp) "Sign Up" else "Login")
+                    }
                 }
-            }) {
-                Text(if (isSignUp) "Sign Up" else "Login")
+
+                Spacer(Modifier.height(16.dp))
+                // Google Sign-In button
+                Button(onClick = {
+                    errorMsg = null
+                    googleSignInClient.signOut().addOnCompleteListener {
+                        val signInIntent = googleSignInClient.signInIntent
+                        googleSignInLauncher.launch(signInIntent)
+                    }
+                }) {
+                    Text("Sign in with Google")
+                }
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = onBack) {
+                    Text("Cancel")
+                }
             }
-        }
-        Spacer(Modifier.height(16.dp))
-        // Google Sign-In button: sign out first to force account chooser
-        Button(onClick = {
-            errorMsg = null
-            googleSignInClient.signOut().addOnCompleteListener {
-                val signInIntent = googleSignInClient.signInIntent
-                googleSignInLauncher.launch(signInIntent)
-            }
-        }) {
-            Text("Sign in with Google")
-        }
-        Spacer(Modifier.height(16.dp))
-        Button(onClick = onBack) {
-            Text("Cancel")
         }
     }
 }

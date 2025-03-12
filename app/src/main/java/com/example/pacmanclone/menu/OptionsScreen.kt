@@ -1,39 +1,28 @@
 package com.example.pacmanclone.menu
 
+import android.media.MediaPlayer
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.*
 import androidx.compose.ui.zIndex
 import com.example.pacmanclone.R
+import com.example.pacmanclone.util.MusicController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -78,19 +67,13 @@ fun UsernameOverlay() {
     val currentUser = auth.currentUser
     val db = FirebaseFirestore.getInstance()
 
-    // Only show overlay if the user is logged in.
     if (currentUser == null) return
 
-    // State to know if Firestore has loaded the username.
     var userDocLoaded by remember { mutableStateOf(false) }
-    // Stored username from Firestore (empty string if none)
     var username by remember { mutableStateOf("") }
-    // Local state to track if we're editing (i.e. show input UI) or just displaying the username.
     var isEditing by remember { mutableStateOf(false) }
-    // Local state for the text field (pre-filled with current username if editing)
     var newUsername by remember { mutableStateOf(TextFieldValue("")) }
 
-    // Load the username from Firestore once
     LaunchedEffect(currentUser.uid) {
         db.collection("users").document(currentUser.uid).get()
             .addOnSuccessListener { snapshot ->
@@ -98,7 +81,6 @@ fun UsernameOverlay() {
                 if (snapshot.exists()) {
                     val fetched = snapshot.getString("username") ?: ""
                     username = fetched
-                    // Pre-fill the text field with the current username when loaded.
                     newUsername = TextFieldValue(fetched)
                 }
             }
@@ -108,12 +90,9 @@ fun UsernameOverlay() {
             }
     }
 
-    // If not loaded yet, show nothing (or a loading indicator)
     if (!userDocLoaded) return
 
-    // If no username is set or if we are in editing mode, show the input UI.
     if (username.isEmpty() || isEditing) {
-        // Darken the background so user is forced to enter/update their username.
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -122,7 +101,6 @@ fun UsernameOverlay() {
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // The nametag box with input field
                 Box(
                     modifier = Modifier
                         .width(300.dp)
@@ -135,7 +113,6 @@ fun UsernameOverlay() {
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.FillBounds
                     )
-                    // Use BasicTextField to avoid default borders
                     BasicTextField(
                         value = newUsername,
                         onValueChange = { newUsername = it },
@@ -172,12 +149,11 @@ fun UsernameOverlay() {
                 Spacer(Modifier.height(8.dp))
                 Button(onClick = {
                     if (newUsername.text.isNotBlank()) {
-                        // Save the new username to Firestore.
                         db.collection("users").document(currentUser.uid)
                             .set(mapOf("username" to newUsername.text))
                             .addOnSuccessListener {
                                 username = newUsername.text
-                                isEditing = false // Exit edit mode.
+                                isEditing = false
                             }
                     }
                 }) {
@@ -186,8 +162,6 @@ fun UsernameOverlay() {
             }
         }
     } else {
-        // If username exists and not in editing mode, show "Hello, <username>" at the top-left.
-        // Make it clickable to allow editing.
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -205,7 +179,6 @@ fun UsernameOverlay() {
                 modifier = Modifier
                     .padding(16.dp)
                     .clickable {
-                        // Switch to edit mode when the username is tapped.
                         newUsername = TextFieldValue(username)
                         isEditing = true
                     }
@@ -213,9 +186,6 @@ fun UsernameOverlay() {
         }
     }
 }
-
-
-
 
 /**
  * The main OptionsScreen layout:
@@ -229,42 +199,76 @@ fun OptionsScreen(
     onHowToPlayClicked: () -> Unit,
     onBack: () -> Unit
 ) {
-    // Full screen background
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.1f))
-    ) {
-        // Stone-themed box
+    val context = LocalContext.current
+
+    // Create the MediaPlayer and start music
+    val mediaPlayer = remember {
+        MediaPlayer.create(context, R.raw.option_music) // replace with your mp3 name
+    }
+    DisposableEffect(Unit) {
+        mediaPlayer.isLooping = true
+        mediaPlayer.start()
+        onDispose {
+            mediaPlayer.stop()
+            mediaPlayer.release()
+        }
+    }
+    LaunchedEffect(MusicController.volume, MusicController.isMuted) {
+        if (MusicController.isMuted) {
+            mediaPlayer.setVolume(0f, 0f)
+        } else {
+            mediaPlayer.setVolume(MusicController.volume, MusicController.volume)
+        }
+    }
+
+
+
+    // **Add a background image** behind everything:
+    Box(modifier = Modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(R.drawable.option_background), // CHANGE to your actual image
+            contentDescription = "Options Background",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
+        // Then your existing layout
         Box(
             modifier = Modifier
-                .width(280.dp)
-                .height(450.dp)
-                .align(Alignment.Center)
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.1f))
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.option_box),
-                contentDescription = "Option Box",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.FillBounds
-            )
-
-            // The 4 option buttons
-            Column(
+            // Stone-themed box
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.SpaceEvenly,
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .width(280.dp)
+                    .height(450.dp)
+                    .align(Alignment.Center)
             ) {
-                OptionButton(text = "Accounts", onClick = onAccountsClicked)
-                OptionButton(text = "Sounds", onClick = onSoundsClicked)
-                OptionButton(text = "How to Play", onClick = onHowToPlayClicked)
-                OptionButton(text = "Back", onClick = onBack)
-            }
-        }
+                Image(
+                    painter = painterResource(id = R.drawable.option_box),
+                    contentDescription = "Option Box",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.FillBounds
+                )
 
-        // The username overlay always on top (zIndex) so it won't hide behind anything
-        UsernameOverlay()
+                // The 4 option buttons
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.SpaceEvenly,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    OptionButton(text = "Accounts", onClick = onAccountsClicked)
+                    OptionButton(text = "Sounds", onClick = onSoundsClicked)
+                    OptionButton(text = "How to Play", onClick = onHowToPlayClicked)
+                    OptionButton(text = "Back", onClick = onBack)
+                }
+            }
+
+            // The username overlay always on top (zIndex) so it won't hide behind anything
+            UsernameOverlay()
+        }
     }
 }

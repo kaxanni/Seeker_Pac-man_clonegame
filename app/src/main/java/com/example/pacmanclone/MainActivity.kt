@@ -7,101 +7,176 @@ import androidx.compose.runtime.*
 import com.example.pacmanclone.auth.AccountScreen
 import com.example.pacmanclone.game.GameLaunchAnimation
 import com.example.pacmanclone.game.PacmanGame
+import com.example.pacmanclone.menu.HowToPlayScreen
+import com.example.pacmanclone.menu.LeaderboardScreen
 import com.example.pacmanclone.menu.MainMenu
 import com.example.pacmanclone.menu.OptionsScreen
+import com.example.pacmanclone.menu.SoundSettingsScreen
+import com.example.pacmanclone.multiplayer.*
+import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            MyApp()
-        }
+        setContent { MyApp() }
     }
 }
 
 @Composable
 fun MyApp() {
-    // State booleans controlling which screen is shown
     var showMainMenu by remember { mutableStateOf(true) }
     var showOptions by remember { mutableStateOf(false) }
+    var showGame by remember { mutableStateOf(false) }
     var showAccount by remember { mutableStateOf(false) }
+    var showLaunch by remember { mutableStateOf(false)  }
+    var showLeaderboard by remember { mutableStateOf(false) }
+    var showHowToPlay by remember { mutableStateOf(false) }
+    var showSoundSettings by remember { mutableStateOf(false) }
 
-    var showLaunch by remember { mutableStateOf(false) } // The second screen (Knights door, etc.)
-    var showGame by remember { mutableStateOf(false) }   // The actual PacmanGame
+    // Multiplayer states
+    var showRoleSelection by remember { mutableStateOf(false) }
+    var showMatchmaking by remember { mutableStateOf(false) }
+    var showMultiplayerGame by remember { mutableStateOf(false) }
+    var chosenRole by remember { mutableStateOf<String?>(null) }
+    var multiplayerMatch by remember { mutableStateOf<MultiplayerMatch?>(null) }
 
     when {
-        // 1) Show the actual Pac-Man game if showGame is true
         showGame -> {
-            PacmanGame(
+            PacmanGame(onBack = {
+                showGame = false
+                showMainMenu = true
+            })
+        }
+        showLaunch -> {
+            GameLaunchAnimation ( onAnimationComplete = {
+                showLaunch = false
+                showGame = true
+            } )
+        }
+        showOptions -> {
+            OptionsScreen(
+                onAccountsClicked = {
+                    showOptions =false
+                    showAccount = true
+                },
+                onHowToPlayClicked = {
+                    // Move from Options to the how-to-play screen
+                    showOptions = false
+                    showHowToPlay = true
+                },
+                onSoundsClicked = {
+                    showOptions = false
+                    showSoundSettings = true
+                },
                 onBack = {
-                    // If user presses "Back" in PacmanGame, go to main menu
-                    showGame = false
+                    showOptions = false
                     showMainMenu = true
                 }
             )
         }
-        // 2) Show the second screen (GameLaunchAnimation) if showLaunch is true
-        showLaunch -> {
-            GameLaunchAnimation(
-                onAnimationComplete = {
-                    // Once animation is done, proceed to the PacmanGame
-                    showLaunch = false
-                    showGame = true
-                }
+        showHowToPlay -> {
+            // Show your HowToPlayScreen
+            HowToPlayScreen(
+                onBack = {
+                    // Return to OptionsScreen or main menu, your choice
+                    showHowToPlay = false
+                    showOptions = true
+                },
+                retroFontFamily = retroFontFamily
             )
         }
-        // 3) Show the AccountScreen if showAccount is true
+        // Sound settings screen.
+        showSoundSettings -> {
+            SoundSettingsScreen(
+                onBack = {
+                    showSoundSettings = false
+                    showOptions = true
+                },
+                retroFontFamily = retroFontFamily
+            )
+        }
         showAccount -> {
             AccountScreen(
                 onBack = {
-                    // Return to Options after back
                     showAccount = false
                     showOptions = true
                 },
                 onLoggedIn = {
-                    // Once logged in, go back to main menu
                     showAccount = false
                     showMainMenu = true
                 }
             )
         }
-        // 4) Show the OptionsScreen if showOptions is true
-        showOptions -> {
-            // Make sure your OptionsScreen has these four parameters
-            OptionsScreen(
-                onAccountsClicked = {
-                    // Navigate to AccountScreen
-                    showOptions = false
-                    showAccount = true
-                },
-                onSoundsClicked = {
-                    // TODO: handle sound settings
-                },
-                onHowToPlayClicked = {
-                    // TODO: show how to play instructions
+        showLeaderboard -> {
+            LeaderboardScreen(onBack = {
+                showLeaderboard = false
+                showMainMenu = true
+            })
+        }
+        showRoleSelection -> {
+            RoleSelectionScreen(
+                onRoleChosen = { role ->
+                    chosenRole = role
+                    showRoleSelection = false
+                    showMatchmaking = true
                 },
                 onBack = {
-                    // Return to main menu
-                    showOptions = false
+                    showRoleSelection = false
                     showMainMenu = true
                 }
             )
         }
-        // 5) Otherwise, show the main menu
+        showMatchmaking && chosenRole != null -> {
+            MatchmakingScreen(
+                selectedRole = chosenRole!!,
+                onMatchFound = { match ->
+                    if (match != null) {
+                        multiplayerMatch = match
+                        showMatchmaking = false
+                        showMultiplayerGame = true
+                    } else {
+                        showMatchmaking = false
+                        showMainMenu = true
+                    }
+                },
+                onBack = {
+                    showMatchmaking = false
+                    showMainMenu = true
+                }
+            )
+        }
+        showMultiplayerGame && multiplayerMatch != null -> {
+            MultiplayerGame(
+                match = multiplayerMatch!!,
+                onBack = {
+                    showMultiplayerGame = false
+                    showMainMenu = true
+                }
+            )
+        }
         showMainMenu -> {
             MainMenu(
                 skipAnimation = false,
                 onStartGame = {
-                    // Tapping "Solo Player" triggers this:
-                    // 1) Hide main menu
-                    // 2) Show GameLaunchAnimation
                     showMainMenu = false
-                    showLaunch = true
+                    showGame = true
                 },
                 onOptionClicked = {
-                    // Show the Options screen
                     showMainMenu = false
                     showOptions = true
+                },
+                onLeaderboardClicked = {
+                    showMainMenu = false
+                    showLeaderboard = true
+                },
+                onMultiplayerClicked = {
+                    val user = FirebaseAuth.getInstance().currentUser
+                    if (user == null) {
+                        // handle login if necessary
+                    } else {
+                        showMainMenu = false
+                        showRoleSelection = true
+                    }
                 }
             )
         }
